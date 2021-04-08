@@ -1,7 +1,17 @@
-const app = require('../app')
+const app = require("../app");
+const mongoDbConnect = require("../services/mongoDb");
 
-const PORT = process.env.PORT || 3000
+const PORT = process.env.PORT || 3000;
 
-app.listen(PORT, () => {
-  console.log(`Server running. Use our API on port: ${PORT}`)
-})
+mongoDbConnect
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(
+        `Server running. Use our API on port: http://localhost:${PORT}`
+      );
+    });
+  })
+  .catch((error) => {
+    console.log(`Server connection error. Error: ${error.message}`);
+    process.exit(1);
+  });
