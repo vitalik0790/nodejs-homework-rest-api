@@ -14,4 +14,6 @@ mongoDbConnect
   .catch((error) => {
     console.log(`Server connection error. Error: ${error.message}`);
     process.exit(1);
+
   });
+
