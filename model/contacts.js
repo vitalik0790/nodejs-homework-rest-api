@@ -1,49 +1,46 @@
 const mongoose = require("mongoose");
-const { Schema } = mongoose;
+const { Schema, SchemaTypes } = mongoose;
+const { SUBSCRIPTION_TYPE } = require("../helpers/constants");
 
-const contactSchema = new Schema(
-  {
-    name: {
-      type: String,
-      require: true,
-      minlength: 2,
-      maxlength: 50,
-    },
-    email: {
-      type: String,
-      require: true,
-      unique: true,
-      minlength: 5,
-      maxlength: 50,
-    },
-    phone: {
-      type: String,
-      require: true,
-      unique: true,
-      minlength: 8,
-      maxlength: 20,
-    },
-    subscription: {
-      type: String,
-      require: true,
-      minlength: 3,
-      maxlength: 15,
-      enum: ["free", "pro", "premium"],
-      default: "free",
-    },
-    password: {
-      type: String,
-      required: true,
-      minlength: 6,
-      maxlength: 20,
-    },
-    token: {
-      type: String,
-      default: "",
+const contactSchema = new Schema({
+  name: {
+    type: String,
+    required: true,
+  },
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    validate: {
+      validator: (v) => /\S+@\S+\.\S+/.test(v),
+      message: (props) => `${props.value} invalid email!`,
     },
   },
-  { versionKey: false, timestamps: true }
-);
+  phone: {
+    type: String,
+    required: true,
+    unique: true,
+    validate: {
+      validator: function (v) {
+        return /^\(?\d{3}\)? ?-? ?\d{3} ?-? ?\d{4}$/;
+      },
+      message: (props) => `${props.value} invalid number`,
+    },
+  },
+  subscription: {
+    type: String,
+    enum: {
+      values: Object.values(SUBSCRIPTION_TYPE),
+      message: "This subscription isn't allowed",
+    },
+    default: SUBSCRIPTION_TYPE.free,
+  },
+  owner: {
+    type: SchemaTypes.ObjectId,
+    ref: "user",
+  },
+});
 
-const Contact = mongoose.model("Contact", contactSchema);
+const Contact = mongoose.model("contact", contactSchema);
+
 module.exports = Contact;

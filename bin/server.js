@@ -1,5 +1,5 @@
 const app = require("../app");
-const mongoDbConnect = require("../services/mongoDB.js");
+const mongoDbConnect = require("../services/mongoDb");
 
 const PORT = process.env.PORT || 3000;
 
@@ -14,4 +14,6 @@ mongoDbConnect
   .catch((error) => {
     console.log(`Server connection error. Error: ${error.message}`);
     process.exit(1);
+
   });
+
