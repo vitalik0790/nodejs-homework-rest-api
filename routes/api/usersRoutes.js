@@ -15,5 +15,7 @@ router.patch(
   [guard, uploadMiddleware.single("avatar")],
   ctrlUsers.avatar
 );
+router.get("/verify/:verificationToken", ctrlUsers.verify);
+router.post("/verify", ctrlUsers.resend);
 
 module.exports = router;

@@ -5,6 +5,7 @@ const gravatar = require("gravatar");
 const Jimp = require("jimp");
 const dotenv = require("dotenv");
 dotenv.config();
+const { v4: uuidv4 } = require("uuid");
 const {
   findUserByEmail,
   findUserById,
@@ -12,10 +13,13 @@ const {
   updateToken,
   patchSub,
   patchAvatar,
+  findByVerifyToken,
+  updateVerifyToken,
 } = require("../model/users");
 const User = require("../model/schemas/userSchema");
 const { Subscription } = require("../helpers/constants");
 const folderExists = require("../helpers/folderExists");
+const sendMail = require("../helpers/sendMail");
 
 const { SECRET_KEY, UPLOADDIR } = process.env;
 
@@ -34,7 +38,13 @@ const reg = async (req, res, next) => {
       });
     }
     const avatarURL = gravatar.url(email, { protocol: "https", s: "250" });
-    const newUser = await createNewUser({ ...req.body, avatarURL });
+    const verifyToken = uuidv4();
+    const newUser = await createNewUser({
+      ...req.body,
+      avatarURL,
+      verifyToken,
+    });
+    await sendMail(verifyToken, email);
 
     res.status(201).json({
       status: "success",
@@ -56,11 +66,11 @@ const login = async (req, res, next) => {
     const { email, password } = req.body;
     const user = await findUserByEmail(email);
 
-    if (!user || !(await user.validPassword(password))) {
+    if (!user || !(await user.validPassword(password)) || !user.verify) {
       return res.status(400).json({
         status: "error",
         code: 400,
-        message: "Wrong email or password",
+        message: "Email/password is wrong or email is not verified",
         data: null,
       });
     }
@@ -174,6 +184,59 @@ const avatar = async (req, res, next) => {
   }
 };
 
+const verify = async (req, res, next) => {
+  try {
+    const user = await findByVerifyToken(req.params.verificationToken);
+    if (user) {
+      await updateVerifyToken(user.id, true, null);
+      return res.status(200).json({
+        status: "success",
+        code: 200,
+        message: "Verification successful!",
+      });
+    }
+    return res.status(404).json({
+      status: "error",
+      code: 404,
+      data: "User not found",
+      message: "Link is not valid",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const resend = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({
+        status: "error",
+        code: 400,
+        message: "missing required field email",
+      });
+    }
+    const user = await findUserByEmail(email);
+    if (user.verify) {
+      return res.status(400).json({
+        status: "error",
+        code: 400,
+        message: "Verification has already been passed",
+      });
+    }
+    const verifyToken = user.verifyToken;
+    await sendMail(verifyToken, email);
+
+    res.status(200).json({
+      status: "success",
+      code: 200,
+      message: "Verification email sent",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   reg,
   login,
@@ -181,4 +244,6 @@ module.exports = {
   current,
   patch,
   avatar,
+  verify,
+  resend,
 };
