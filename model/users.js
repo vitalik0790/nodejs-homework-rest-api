@@ -25,6 +25,7 @@ const createNewUser = async ({
     token,
     avatarURL,
     verifyToken,
+
   }).save();
   return user;
 };
